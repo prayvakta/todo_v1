@@ -1,0 +1,5 @@
+# Dependencies
+node_modules
+
+# Local settings file
+.DS_Store
