@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 const date = require(__dirname + '/date.js');
 
 const app = express();
@@ -9,11 +10,33 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: 'true' }));
 app.use(express.static("public"));
 
-const items = ["Buy food", "Cook food", "Eat food"];
-const workItems = [];
+mongoose.connect('mongodb://localhost:27017/todoListDB', {useNewUrlParser: true, useUnifiedTopology: true});
+
+const itemsSchema = mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  }
+});
+
+const Item = mongoose.model("Item", itemsSchema);
 
 app.get('/', (req, res) => {
-  res.render("list", {itemTitle: date.getDate(), listItem: items});
+
+  Item.find((err, items) => {
+    if(err){
+      console.error(err);
+    }
+    if(items.length === 0) {
+      Item.insertMany([{name: "Buy food"}, {name: "Cook food"}, {name: "Eat food"}], err => err ? console.error(err) : console.log("Items added successfully"));
+      res.redirect('/');
+    } else {
+      res.render("list", {
+        itemTitle: date.getDate(),
+        listItems: items
+      });
+    }
+  });
 });
 
 app.post('/', (req, res) => {
@@ -23,7 +46,8 @@ app.post('/', (req, res) => {
     res.redirect('/work');
   }
   else{
-    items.push(req.body.todoItem);
+    const newItem = new Item({ name: req.body.todoItem });
+    newItem.save();
     res.redirect('/');
   }
 })
